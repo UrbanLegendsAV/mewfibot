@@ -39,7 +39,7 @@ class MewFiBot:
             keyboard = self.command_handler.get_main_menu_keyboard()
             message = self.command_handler.get_command_response('/start', context_type)
             
-            update.message.reply_text(message, reply_markup=keyboard)
+            update.message.reply_text(message, reply_markup=keyboard, parse_mode='Markdown')
         except Exception as e:
             logger.error(f'Error in start command: {str(e)}')
             update.message.reply_text(ERROR_MESSAGES['general_error'])
@@ -48,7 +48,7 @@ class MewFiBot:
         """Handle /pricexrp command"""
         try:
             message = self.command_handler.get_command_response('/pricexrp')
-            update.message.reply_text(message)
+            update.message.reply_text(message, parse_mode='Markdown')
         except Exception as e:
             logger.error(f'Error in price command: {str(e)}')
             update.message.reply_text(ERROR_MESSAGES['general_error'])
@@ -62,7 +62,7 @@ class MewFiBot:
             message = self.command_handler.get_command_response('/help', context_type)
             keyboard = self.command_handler.get_main_menu_keyboard()
             
-            update.message.reply_text(message, reply_markup=keyboard)
+            update.message.reply_text(message, reply_markup=keyboard, parse_mode='Markdown')
         except Exception as e:
             logger.error(f'Error in help command: {str(e)}')
             update.message.reply_text(ERROR_MESSAGES['general_error'])

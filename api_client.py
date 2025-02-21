@@ -4,31 +4,33 @@ from config import COINMARKETCAP_API_KEY, COINMARKETCAP_URL, ERROR_MESSAGES
 
 logger = logging.getLogger(__name__)
 
-def get_xrp_price():
-    """Fetch XRP price from CoinMarketCap API"""
+def get_crypto_prices():
+    """Fetch XRP, BTC, and ETH prices from CoinMarketCap API"""
     try:
         headers = {
             'X-CMC_PRO_API_KEY': COINMARKETCAP_API_KEY,
             'Accept': 'application/json'
         }
         params = {
-            'symbol': 'XRP',
+            'symbol': 'XRP,BTC,ETH',
             'convert': 'USD'
         }
         
         response = requests.get(COINMARKETCAP_URL, headers=headers, params=params)
         response.raise_for_status()
         
-        data = response.json()
-        xrp_data = data['data']['XRP']
+        data = response.json()['data']
         
-        price = xrp_data['quote']['USD']['price']
-        change_24h = xrp_data['quote']['USD']['percent_change_24h']
+        prices = {}
+        for symbol in ['XRP', 'BTC', 'ETH']:
+            crypto_data = data[symbol]
+            quote = crypto_data['quote']['USD']
+            prices[symbol] = {
+                'price': round(quote['price'], 2 if symbol != 'XRP' else 4),
+                'change_24h': round(quote['percent_change_24h'], 2)
+            }
         
-        return {
-            'price': round(price, 4),
-            'change_24h': round(change_24h, 2)
-        }
+        return prices
     except Exception as e:
-        logger.error(f'Error fetching XRP price: {str(e)}')
+        logger.error(f'Error fetching crypto prices: {str(e)}')
         return None

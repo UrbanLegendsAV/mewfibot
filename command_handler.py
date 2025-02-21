@@ -68,11 +68,24 @@ class CommandHandler:
             return ERROR_MESSAGES['command_error']
     
     def _handle_price_command(self, row):
-        """Handle /pricexrp command with live data"""
-        price_data = get_xrp_price()
+        """Handle /pricexrp command with live data for XRP, BTC, and ETH"""
+        price_data = get_crypto_prices()
         if not price_data:
             return ERROR_MESSAGES['api_error']
-            
-        return f"🐱 Current XRP Price: ${price_data['price']:,.4f}\\n" \
-               f"24h Change: {price_data['change_24h']}%\\n\\n" \
-               f"Powered by CoinMarketCap 📊"
+        
+        from datetime import datetime
+        utc_time = datetime.utcnow().strftime('%H:%M:%S UTC')
+        
+        def format_change(change):
+            return f"{'🟢' if change > 0 else '🔴'} {change:.2f}%"
+        
+        message = (
+            "💰 *Cryptocurrency Prices*\\n\\n"
+            f"💎 XRP: ${price_data['XRP']['price']:,.4f} ({format_change(price_data['XRP']['change_24h'])})\\n"
+            f"🟡 BTC: ${price_data['BTC']['price']:,.2f} ({format_change(price_data['BTC']['change_24h'])})\\n"
+            f"🟣 ETH: ${price_data['ETH']['price']:,.2f} ({format_change(price_data['ETH']['change_24h'])})\\n\\n"
+            f"Updated: {utc_time}\\n"
+            "Powered by CoinMarketCap 📊"
+        )
+        
+        return message
