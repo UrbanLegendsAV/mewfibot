@@ -1,6 +1,12 @@
+import os
 from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 import pandas as pd
+
+# Load bot token from environment variable
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+if not BOT_TOKEN:
+    raise ValueError("No BOT_TOKEN found in environment variables. Please set it!")
 
 # Load CSV
 commands = pd.read_csv('commands.csv')
@@ -41,7 +47,7 @@ def pricexrp(update, context):
     update.message.reply_text(desc)  # Add CoinMarketCap API call later
 
 # Setup bot
-updater = Updater("YOUR_BOT_TOKEN", use_context=True)
+updater = Updater(BOT_TOKEN, use_context=True)
 dp = updater.dispatcher
 dp.add_handler(CommandHandler("start", start))
 dp.add_handler(CommandHandler("pricexrp", pricexrp))
