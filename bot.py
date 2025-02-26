@@ -62,7 +62,8 @@ def fetch_xrp_price():
     except Exception as e:
         logger.error(f"CoinGecko error: {str(e)}")
         return {'success': False, 'error': str(e)}
-# Format price message (your old display)
+
+# Format price message with dynamic source
 def format_price_message(price_data, source="CoinGecko"):
     if not price_data['success']:
         return "Sorry, couldn't fetch prices right now. Try again later!"
@@ -76,12 +77,6 @@ def format_price_message(price_data, source="CoinGecko"):
         f"🟣 ETH: ${prices['ETH']['price']:,.2f} ({'🟢' if prices['ETH']['change'] > 0 else '🔴'} {prices['ETH']['change']:.2f}%)\n\n"
         f"Updated: {utc_time}\nPowered by {source} 📊"
     )
-
-def pricexrp(update, context):
-    price_data = fetch_xrp_price()
-    source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
-    response = format_price_message(price_data, source)
-    update.message.reply_text(response, parse_mode='Markdown')
 
 # Start command with main menu
 def start(update, context):
@@ -120,11 +115,12 @@ def button(update, context):
 # Command handler for /pricexrp
 def pricexrp(update, context):
     price_data = fetch_xrp_price()
-    response = format_price_message(price_data)
+    source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
+    response = format_price_message(price_data, source)
     update.message.reply_text(response, parse_mode='Markdown')
 
 # Setup bot
-updater = Updater(BOT_TOKEN, use_context=True)
+updater = Updater(BOT_TOKEN)  # Fixed: Removed use_context=True
 dp = updater.dispatcher
 dp.add_handler(CommandHandler("start", start))
 dp.add_handler(CommandHandler("pricexrp", pricexrp))
