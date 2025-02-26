@@ -24,8 +24,28 @@ commands = pd.read_csv('commands.csv')
 
 # Utility function to fetch XRP price from CoinMarketCap (or CoinGecko as fallback)
 def fetch_xrp_price():
+    CMC_API_KEY = os.getenv("CMC_API_KEY")
+    if CMC_API_KEY:
+        try:
+            url = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest"
+            headers = {"X-CMC_PRO_API_KEY": CMC_API_KEY}
+            params = {"symbol": "XRP,BTC,ETH", "convert": "USD"}
+            response = requests.get(url, headers=headers, params=params)
+            if response.status_code == 200:
+                data = response.json()["data"]
+                return {
+                    'success': True,
+                    'prices': {
+                        'XRP': {'price': data['XRP']['quote']['USD']['price'], 'change': data['XRP']['quote']['USD']['percent_change_24h']},
+                        'BTC': {'price': data['BTC']['quote']['USD']['price'], 'change': data['BTC']['quote']['USD']['percent_change_24h']},
+                        'ETH': {'price': data['ETH']['quote']['USD']['price'], 'change': data['ETH']['quote']['USD']['percent_change_24h']}
+                    }
+                }
+            logger.warning(f"CMC API error: {response.status_code}")
+        except Exception as e:
+            logger.error(f"CMC error: {str(e)}")
+    # Fallback to CoinGecko
     try:
-        # Use CoinGecko for simplicity (replace with CoinMarketCap if you have an API key)
         response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=ripple,bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true')
         if response.status_code == 200:
             data = response.json()
@@ -37,14 +57,13 @@ def fetch_xrp_price():
                     'ETH': {'price': data['ethereum']['usd'], 'change': data['ethereum']['usd_24h_change']}
                 }
             }
-        logger.warning(f"API error: {response.status_code}")
+        logger.warning(f"CoinGecko API error: {response.status_code}")
         return {'success': False, 'error': 'API fetch failed'}
     except Exception as e:
-        logger.error(f"Error fetching price: {str(e)}")
+        logger.error(f"CoinGecko error: {str(e)}")
         return {'success': False, 'error': str(e)}
-
 # Format price message (your old display)
-def format_price_message(price_data):
+def format_price_message(price_data, source="CoinGecko"):
     if not price_data['success']:
         return "Sorry, couldn't fetch prices right now. Try again later!"
     prices = price_data['prices']
@@ -55,8 +74,14 @@ def format_price_message(price_data):
         f"💎 XRP: ${prices['XRP']['price']:,.2f} ({'🟢' if prices['XRP']['change'] > 0 else '🔴'} {prices['XRP']['change']:.2f}%)\n"
         f"🟡 BTC: ${prices['BTC']['price']:,.2f} ({'🟢' if prices['BTC']['change'] > 0 else '🔴'} {prices['BTC']['change']:.2f}%)\n"
         f"🟣 ETH: ${prices['ETH']['price']:,.2f} ({'🟢' if prices['ETH']['change'] > 0 else '🔴'} {prices['ETH']['change']:.2f}%)\n\n"
-        f"Updated: {utc_time}\nPowered by CoinGecko 📊"
+        f"Updated: {utc_time}\nPowered by {source} 📊"
     )
+
+def pricexrp(update, context):
+    price_data = fetch_xrp_price()
+    source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
+    response = format_price_message(price_data, source)
+    update.message.reply_text(response, parse_mode='Markdown')
 
 # Start command with main menu
 def start(update, context):
