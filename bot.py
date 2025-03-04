@@ -80,20 +80,15 @@ def format_price_message(price_data, source="CoinGecko"):
 
 # Start command with main menu
 async def start(update, context):
-    main_items = commands[commands['Menu Level'] == 'main']
-    keyboard = [
-        [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
-        for _, row in main_items.iterrows()
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
-                                    reply_markup=reply_markup, parse_mode='Markdown')
-
-# Handle button clicks
-# Start command with main menu
-async def start(update, context):
     chat_type = update.message.chat.type
     context_filter = 'private' if chat_type == 'private' else 'group'
+    command_entry = commands[(commands['Command'] == '/start') & (commands['Context'] == context_filter)]
+    
+    if not command_entry.empty:
+        description = command_entry.iloc[0]['Description'].replace('\\n', '\n')
+    else:
+        description = "🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate."
+    
     main_items = commands[(commands['Menu Level'] == 'main') & (commands['Context'] == context_filter)]
     keyboard = [
         [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
@@ -103,8 +98,7 @@ async def start(update, context):
     # Send start.gif before the menu
     with open('start.gif', 'rb') as gif:
         await update.message.reply_animation(gif)
-    await update.message.reply_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
-                                    reply_markup=reply_markup, parse_mode='Markdown')
+    await update.message.reply_text(description, reply_markup=reply_markup, parse_mode='Markdown')
 
 # Handle button clicks
 async def button(update, context):
@@ -147,16 +141,22 @@ async def button(update, context):
                     await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
                                                  reply_markup=reply_markup, parse_mode='Markdown')
                 else:
-                    await query.edit_message_text(row['Description'], parse_mode='Markdown')
+                    description = row['Description'].replace('\\n', '\n')
+                    await query.edit_message_text(description, parse_mode='Markdown')
             else:
                 logger.info(f"Displaying description for command: {cmd}, Description: {row['Description']}")
-                await query.edit_message_text(row['Description'], parse_mode='Markdown')
+                description = row['Description'].replace('\\n', '\n')
+                await query.edit_message_text(description, parse_mode='Markdown')
         else:
             await query.edit_message_text(f"Command {cmd} not found in commands.csv", parse_mode='Markdown')
     await query.answer()
 
 # Command handler for /pricexrp
 async def pricexrp(update, context):
+    chat_type = update.message.chat.type
+    context_filter = 'private' if chat_type == 'private' else 'group'
+    command_entry = commands[(commands['Command'] == '/pricexrp') & (commands['Context'] == context_filter)]
+    
     price_data = fetch_xrp_price()
     source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
     response = format_price_message(price_data, source)
@@ -166,5 +166,17 @@ async def pricexrp(update, context):
 app = Application.builder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("pricexrp", pricexrp))
+app.add_handler(CommandHandler("wallets", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("dexs", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("cexs", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("xrpltools", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("airdrops", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("nfts", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("buy_meowrp", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("antirug_scan", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("merch", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("terminology", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("influencers", lambda update, context: start(update, context)))
+app.add_handler(CommandHandler("help", lambda update, context: start(update, context)))
 app.add_handler(CallbackQueryHandler(button))
 app.run_polling()
