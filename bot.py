@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 import requests
-from telegram.ext import Updater, CommandHandler, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 # Setup logging
@@ -79,18 +79,18 @@ def format_price_message(price_data, source="CoinGecko"):
     )
 
 # Start command with main menu
-def start(update, context):
+async def start(update, context):
     main_items = commands[commands['Menu Level'] == 'main']
     keyboard = [
         [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
         for _, row in main_items.iterrows()
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
-                             reply_markup=reply_markup, parse_mode='Markdown')
+    await update.message.reply_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
+                                    reply_markup=reply_markup, parse_mode='Markdown')
 
 # Handle button clicks
-def button(update, context):
+async def button(update, context):
     query = update.callback_query
     cmd = query.data
     row = commands[commands['Command'] == cmd].iloc[0]
@@ -104,26 +104,24 @@ def button(update, context):
             ]
             keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
             reply_markup = InlineKeyboardMarkup(keyboard)
-            query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
-                                  reply_markup=reply_markup, parse_mode='Markdown')
+            await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
+                                         reply_markup=reply_markup, parse_mode='Markdown')
         else:
-            query.edit_message_text(row['Description'], parse_mode='Markdown')
+            await query.edit_message_text(row['Description'], parse_mode='Markdown')
     else:
-        query.edit_message_text(row['Description'], parse_mode='Markdown')
-    query.answer()
+        await query.edit_message_text(row['Description'], parse_mode='Markdown')
+    await query.answer()
 
 # Command handler for /pricexrp
-def pricexrp(update, context):
+async def pricexrp(update, context):
     price_data = fetch_xrp_price()
     source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
     response = format_price_message(price_data, source)
-    update.message.reply_text(response, parse_mode='Markdown')
+    await update.message.reply_text(response, parse_mode='Markdown')
 
 # Setup bot
-updater = Updater(BOT_TOKEN)  # Fixed: Removed use_context=True
-dp = updater.dispatcher
-dp.add_handler(CommandHandler("start", start))
-dp.add_handler(CommandHandler("pricexrp", pricexrp))
-dp.add_handler(CallbackQueryHandler(button))
-updater.start_polling()
-updater.idle()
+app = Application.builder().token(BOT_TOKEN).build()
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("pricexrp", pricexrp))
+app.add_handler(CallbackQueryHandler(button))
+app.run_polling()
