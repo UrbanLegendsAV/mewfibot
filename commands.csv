@@ -76,14 +76,14 @@ Try chatting with me in private messages for quick-access menus and a smoother e
 Wallets 🔐🏦,,main,"🏦 Decentralized Wallets – Trusted by the Community & Mew Verified! Your wallet is your key to the XRPL! Choose a secure, self-custodial wallet to store, send, and trade XRP & tokens. 🔐💎",/wallets,private
 Wallets 🔐🏦,Xaman Wallet 🏦,submenu,"✨ Meow! Xaman Wallet is your magical gateway to XRPL! 🪄 A self-custodial wallet that lets you manage XRPL assets with ease. Keep your treasures safe, swap tokens like a pro, and enjoy smooth transactions! 🐾💎 
 🔗 https://xaman.app/",/wallets_xaman,private
-Wallets🔐🏦,Bifrost Wallet 🌉,submenu,"🌈 Mew thinks Bifrost Wallet is purrfect! 🌟 A multi-currency wonder developed by Towo Labs. Not just for XRPL, but a true bridge to other blockchains! Secure, efficient, and totally pawsome! 🐾🔑 
+Wallets 🔐🏦,Bifrost Wallet 🌉,submenu,"🌈 Mew thinks Bifrost Wallet is purrfect! 🌟 A multi-currency wonder developed by Towo Labs. Not just for XRPL, but a true bridge to other blockchains! Secure, efficient, and totally pawsome! 🐾🔑 
 🔗 https://bifrostwallet.com/",/wallets_bifrost,private
-Wallets🔐🏦,First Ledger Wallet 🏦,submenu,"🏦 Meow! First Ledger Wallet is your ultimate XRPL vault! Securely manage, send, and receive XRPL tokens while accessing powerful trading tools! ps this is where we launched 🐾💰 
+Wallets 🔐🏦,First Ledger Wallet 🏦,submenu,"🏦 Meow! First Ledger Wallet is your ultimate XRPL vault! Securely manage, send, and receive XRPL tokens while accessing powerful trading tools! ps this is where we launched 🐾💰 
 🔗 https://firstledger.net/?ref=zxhRxHNuFMtC",/wallets_firstledger,private
-Wallets🔐🏦,Trust Wallet 🔐,submenu,"🔹 Trust Wallet is like a treasure chest for your XRP! 🏆 Meow approves of this easy-to-use, multi-chain wallet that keeps your assets safe and ready for adventure! 🚀😺 🔗 https://trustwallet.com/",/wallets_trust,private
-Wallets🔐🏦,Atomic Wallet 💥,submenu,"💥 Atomic Wallet is where security meets flexibility! Mew loves that it supports 500+ cryptos, including XRP! Manage, swap, and stake all in one purrfect place! 🐾🔥 🔗 https://atomicwallet.io/",/wallets_atomic,private
-Wallets🔐🏦,Ledger Vault 🏰,submenu,"🔐 Ledger is the ultimate hardware fortress for your XRP! Mew says: Keep your coins safe with this cold storage beast. No scams, no hacks, just purrfect security! 🏰🐾 🔗 https://www.ledger.com/",/wallets_ledger,private
-Wallets🔐🏦,Gem Wallet 💎,submenu,"💎 Mew says: Shine bright like a Gem! Gem Wallet is a purrfectly simple and ultra-secure self-custodial wallet for the XRPL! No complicated setups—just smooth, seamless, and secure transactions! 🚀🐾
+Wallets 🔐🏦,Trust Wallet 🔐,submenu,"🔹 Trust Wallet is like a treasure chest for your XRP! 🏆 Meow approves of this easy-to-use, multi-chain wallet that keeps your assets safe and ready for adventure! 🚀😺 🔗 https://trustwallet.com/",/wallets_trust,private
+Wallets 🔐🏦,Atomic Wallet 💥,submenu,"💥 Atomic Wallet is where security meets flexibility! Mew loves that it supports 500+ cryptos, including XRP! Manage, swap, and stake all in one purrfect place! 🐾🔥 🔗 https://atomicwallet.io/",/wallets_atomic,private
+Wallets 🔐🏦,Ledger Vault 🏰,submenu,"🔐 Ledger is the ultimate hardware fortress for your XRP! Mew says: Keep your coins safe with this cold storage beast. No scams, no hacks, just purrfect security! 🏰🐾 🔗 https://www.ledger.com/",/wallets_ledger,private
+Wallets 🔐🏦,Gem Wallet 💎,submenu,"💎 Mew says: Shine bright like a Gem! Gem Wallet is a purrfectly simple and ultra-secure self-custodial wallet for the XRPL! No complicated setups—just smooth, seamless, and secure transactions! 🚀🐾
 ✅ Super Fast Setup – No tech headaches, just plug & purr! 🛠️✨
 ✅ Non-Custodial & Secure – YOU hold the keys, YOU control your assets! 🔑🐾
 ✅ Seamless XRPL Integration – Send, receive, and manage XRP effortlessly! 💸😸
