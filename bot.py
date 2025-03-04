@@ -82,7 +82,10 @@ def format_price_message(price_data, source="CoinGecko"):
 async def start(update, context):
     chat_type = update.message.chat.type
     context_filter = 'private' if chat_type == 'private' else 'group'
-    command_entry = commands[(commands['Command'] == '/start') & (commands['Context'] == context_filter)]
+    
+    # Determine the command being handled
+    command = update.message.text.split('@')[0].split()[0][1:]  # Extracts the command (e.g., 'help' from '/help@MewFiBot')
+    command_entry = commands[(commands['Command'] == f'/{command}') & (commands['Context'] == context_filter)]
     
     if not command_entry.empty:
         description = command_entry.iloc[0]['Description'].replace('\\n', '\n')
