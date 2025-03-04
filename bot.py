@@ -90,14 +90,34 @@ async def start(update, context):
                                     reply_markup=reply_markup, parse_mode='Markdown')
 
 # Handle button clicks
+# Start command with main menu
+async def start(update, context):
+    chat_type = update.message.chat.type
+    context_filter = 'private' if chat_type == 'private' else 'group'
+    main_items = commands[(commands['Menu Level'] == 'main') & (commands['Context'] == context_filter)]
+    keyboard = [
+        [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
+        for _, row in main_items.iterrows()
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    # Send start.gif before the menu
+    with open('start.gif', 'rb') as gif:
+        await update.message.reply_animation(gif)
+    await update.message.reply_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
+                                    reply_markup=reply_markup, parse_mode='Markdown')
+
+# Handle button clicks
 async def button(update, context):
     query = update.callback_query
     cmd = query.data
     logger.info(f"Button clicked with callback data: {cmd}")  # Log the callback data
     
+    chat_type = query.message.chat.type
+    context_filter = 'private' if chat_type == 'private' else 'group'
+    
     if cmd == "back_to_main":
-        # Rebuild the main menu
-        main_items = commands[commands['Menu Level'] == 'main']
+        # Rebuild the main menu with context filter
+        main_items = commands[(commands['Menu Level'] == 'main') & (commands['Context'] == context_filter)]
         keyboard = [
             [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
             for _, row in main_items.iterrows()
@@ -112,22 +132,27 @@ async def button(update, context):
         response = format_price_message(price_data, source)
         await query.edit_message_text(response, parse_mode='Markdown')
     else:
-        row = commands[commands['Command'] == cmd].iloc[0]
-        if row['Menu Level'] == 'main':
-            sub_items = commands[(commands['Main Category'] == row['Main Category']) & (commands['Menu Level'] == 'submenu')]
-            if not sub_items.empty:
-                keyboard = [
-                    [InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])]
-                    for _, row in sub_items.iterrows()
-                ]
-                keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
-                                             reply_markup=reply_markup, parse_mode='Markdown')
+        row = commands[commands['Command'] == cmd]
+        if not row.empty:
+            row = row.iloc[0]
+            if row['Menu Level'] == 'main':
+                sub_items = commands[(commands['Main Category'] == row['Main Category']) & (commands['Menu Level'] == 'submenu') & (commands['Context'] == context_filter)]
+                if not sub_items.empty:
+                    keyboard = [
+                        [InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])]
+                        for _, row in sub_items.iterrows()
+                    ]
+                    keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
+                    reply_markup = InlineKeyboardMarkup(keyboard)
+                    await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
+                                                 reply_markup=reply_markup, parse_mode='Markdown')
+                else:
+                    await query.edit_message_text(row['Description'], parse_mode='Markdown')
             else:
+                logger.info(f"Displaying description for command: {cmd}, Description: {row['Description']}")
                 await query.edit_message_text(row['Description'], parse_mode='Markdown')
         else:
-            await query.edit_message_text(row['Description'], parse_mode='Markdown')
+            await query.edit_message_text(f"Command {cmd} not found in commands.csv", parse_mode='Markdown')
     await query.answer()
 
 # Command handler for /pricexrp
