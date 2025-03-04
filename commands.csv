@@ -58,9 +58,9 @@ Meow says: Coinmun is pouncing into the XRPL scene! Now supporting XRPL tokens, 
 ✅ Secure & decentralized – Trade directly from your wallet with full control! 🏦
 
 🔗 Discover More: https://coinmun.com",/dexs_coinmun,private
-Help ❓,,main,📌 MewFi Help Menu
+Help ❓,,main,"📌 MewFi Help Menu
 🐾 Welcome to MewFi Bot! 😺
-Use these commands to explore XRPL & MeowRP resources!,/help,private
+Use these commands to explore XRPL & MeowRP resources!",/help,private
 Help ❓,📺 Tutorials,submenu,Learn how to use MewFi with step-by-step guides! 🚀 Click below to watch!,/tutorials,private
 Main Menu❓,,main,"📌 MewFi Help Menu for Groups
 🐾 In groups, use /help@MewFiBot to see all commands and explore MewFi’s features! 😺
@@ -93,7 +93,7 @@ CEXs💹,,main,Trade XRP on top global exchanges!,/cexs,private
 CEXs💹,Gemini 🌐,submenu,"🐾 Mew says: Trade XRP on Gemini, the purr-fect regulated U.S. exchange with deep liquidity and security! 🚀💎 🔗 Trade on Gemini: https://www.gemini.com/",/cex_gemini,private
 CEXs💹,Coincheck 🇯🇵,submenu,"🏯 Japan’s XRP trading powerhouse! Buy, sell, and stake XRP seamlessly with fiat on-ramps! 🐾🐉 🔗 Trade on Coincheck: https://coincheck.com/",/cex_coincheck,private
 CEXs💹,Coinbase 🏛️,submenu,"💸 U.S. traders, Mew’s got you covered! Coinbase makes buying XRP easy, plus you can stake and earn rewards! 🐾💰 🔗 Trade on Coinbase: https://www.coinbase.com/",/cex_coinbase,private
-CEXs💹,Kraken ⚓,submenu,🌊 Deep liquidity and XRP futures! Mew-approved for margin traders who want to ride the crypto waves! 📈🐾 🔗 Trade on Kraken: https://www.kraken.com/,/cex_kraken,private
+CEXs💹,Kraken ,submenu," Deep liquidity and XRP futures! Mew-approved for margin traders who want to ride the crypto waves!   Trade on Kraken: https://www.kraken.com/",/cex_kraken,private
 CEXs💹,Binance 🌏,submenu,"🌍 The king of exchanges! XRP trading across 50+ fiat pairs, meow-sive liquidity, and an active global community! 🐾🔥 🔗 Trade on Binance: https://www.binance.us/ ",/cex_binance,private
 CEXs💹,Bitstamp 🏆,submenu,"🏆 The OG XRP exchange! A trusted platform for institutions and long-term hodlers—safe, secure, and MewFi-approved! 🐾💎 🔗 Trade on Bitstamp: https://www.bitstamp.net/",/cex_bitstamp,private
 XRPL Tools🛠️,,main,"🔍 Your Gateway to the Best XRPL Tools!
