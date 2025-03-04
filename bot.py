@@ -93,23 +93,41 @@ async def start(update, context):
 async def button(update, context):
     query = update.callback_query
     cmd = query.data
-    row = commands[commands['Command'] == cmd].iloc[0]
+    logger.info(f"Button clicked with callback data: {cmd}")  # Log the callback data
     
-    if row['Menu Level'] == 'main':
-        sub_items = commands[(commands['Main Category'] == row['Main Category']) & (commands['Menu Level'] == 'submenu')]
-        if not sub_items.empty:
-            keyboard = [
-                [InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])]
-                for _, row in sub_items.iterrows()
-            ]
-            keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
-                                         reply_markup=reply_markup, parse_mode='Markdown')
+    if cmd == "back_to_main":
+        # Rebuild the main menu
+        main_items = commands[commands['Menu Level'] == 'main']
+        keyboard = [
+            [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
+            for _, row in main_items.iterrows()
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        await query.edit_message_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
+                                      reply_markup=reply_markup, parse_mode='Markdown')
+    elif cmd == "/pricexrp":
+        # Call the pricexrp() function directly
+        price_data = fetch_xrp_price()
+        source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
+        response = format_price_message(price_data, source)
+        await query.edit_message_text(response, parse_mode='Markdown')
+    else:
+        row = commands[commands['Command'] == cmd].iloc[0]
+        if row['Menu Level'] == 'main':
+            sub_items = commands[(commands['Main Category'] == row['Main Category']) & (commands['Menu Level'] == 'submenu')]
+            if not sub_items.empty:
+                keyboard = [
+                    [InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])]
+                    for _, row in sub_items.iterrows()
+                ]
+                keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
+                                             reply_markup=reply_markup, parse_mode='Markdown')
+            else:
+                await query.edit_message_text(row['Description'], parse_mode='Markdown')
         else:
             await query.edit_message_text(row['Description'], parse_mode='Markdown')
-    else:
-        await query.edit_message_text(row['Description'], parse_mode='Markdown')
     await query.answer()
 
 # Command handler for /pricexrp
