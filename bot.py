@@ -85,10 +85,21 @@ async def start(update, context):
     
     # Determine the command being handled
     command = update.message.text.split('@')[0].split()[0][1:]  # Extracts the command (e.g., 'help' from '/help@MewFiBot')
+    logger.info(f"Command invoked: /{command}, Chat Type: {chat_type}, Context Filter: {context_filter}")
+    
     command_entry = commands[(commands['Command'] == f'/{command}') & (commands['Context'] == context_filter)]
     
     if not command_entry.empty:
         description = command_entry.iloc[0]['Description'].replace('\\n', '\n')
+        # Special case for /help in group chat: append a list of all commands
+        if command == 'help' and context_filter == 'group':
+            all_commands = commands[commands['Menu Level'] == 'main']
+            description += "\n\n📋 *Available Commands:*\n"
+            for _, row in all_commands.iterrows():
+                if row['Context'] == 'group':
+                    description += f"- {row['Command']}@MewFiBot: {row['Main Category']}\n"
+                else:
+                    description += f"- {row['Command']}: {row['Main Category']}\n"
     else:
         description = "🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate."
     
@@ -98,9 +109,12 @@ async def start(update, context):
         for _, row in main_items.iterrows()
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    # Send start.gif before the menu
-    with open('start.gif', 'rb') as gif:
-        await update.message.reply_animation(gif)
+    # Send start.gif before the menu, with error handling
+    try:
+        with open('start.gif', 'rb') as gif:
+            await update.message.reply_animation(gif)
+    except Exception as e:
+        logger.error(f"Failed to send start.gif: {str(e)}")
     await update.message.reply_text(description, reply_markup=reply_markup, parse_mode='Markdown')
 
 # Handle button clicks
