@@ -3,7 +3,8 @@ import logging
 import pandas as pd
 import requests
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
+from datetime import datetime
 
 # Setup logging
 logging.basicConfig(
@@ -22,7 +23,7 @@ if not BOT_TOKEN:
 # Load commands from CSV
 commands = pd.read_csv('commands.csv')
 
-# Utility function to fetch XRP price from CoinMarketCap (fallback to CoinGecko)
+# Utility function to fetch XRP price from CoinMarketCap (or CoinGecko as fallback)
 def fetch_xrp_price():
     CMC_API_KEY = os.getenv("CMC_API_KEY")
     if CMC_API_KEY:
@@ -44,7 +45,6 @@ def fetch_xrp_price():
             logger.warning(f"CMC API error: {response.status_code}")
         except Exception as e:
             logger.error(f"CMC error: {str(e)}")
-    
     # Fallback to CoinGecko
     try:
         response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=ripple,bitcoin,ethereum&vs_currencies=usd&include_24hr_change=true')
@@ -64,12 +64,11 @@ def fetch_xrp_price():
         logger.error(f"CoinGecko error: {str(e)}")
         return {'success': False, 'error': str(e)}
 
-# Format price message
+# Format price message with dynamic source
 def format_price_message(price_data, source="CoinGecko"):
     if not price_data['success']:
         return "Sorry, couldn't fetch prices right now. Try again later!"
     prices = price_data['prices']
-    from datetime import datetime
     utc_time = datetime.utcnow().strftime('%H:%M:%S UTC')
     return (
         "💰 *Cryptocurrency Prices*\n\n"
@@ -79,66 +78,155 @@ def format_price_message(price_data, source="CoinGecko"):
         f"Updated: {utc_time}\nPowered by {source} 📊"
     )
 
-# Start command with menu
+# Start command with main menu
 async def start(update, context):
     chat_type = update.message.chat.type
     context_filter = 'private' if chat_type == 'private' else 'group'
-
-    command_entry = commands[(commands['Command'] == '/start') & (commands['Context'] == context_filter)]
-    description = command_entry.iloc[0]['Description'].replace('\\n', '\n') if not command_entry.empty else "🐱 Welcome to MewFi Bot! 🐱"
-
+    
+    # Determine the command being handled
+    command = update.message.text.split('@')[0].split()[0][1:]  # Extracts the command (e.g., 'help' from '/help@MewFiBot')
+    logger.info(f"Command invoked: /{command}, Chat Type: {chat_type}, Context Filter: {context_filter}")
+    
+    command_entry = commands[(commands['Command'] == f'/{command}') & (commands['Context'] == context_filter)]
+    
+    if not command_entry.empty:
+        description = command_entry.iloc[0]['Description'].replace('\\n', '\n')
+        # Special case for /help in group chat: append a list of all commands
+        if command == 'help' and context_filter == 'group':
+            all_commands = commands[commands['Menu Level'] == 'main']
+            description += "\n\n📋 *Available Commands:*\n"
+            for _, row in all_commands.iterrows():
+                if row['Context'] == 'group':
+                    description += f"- {row['Command']}@MewFiBot: {row['Main Category']}\n"
+                else:
+                    description += f"- {row['Command']}: {row['Main Category']}\n"
+    else:
+        description = "🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate."
+    
+    # Handle the menu based on chat type
     main_items = commands[(commands['Menu Level'] == 'main') & (commands['Context'] == context_filter)]
-    keyboard = [[InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])] for _, row in main_items.iterrows()]
+    
+    if chat_type == 'private':
+        # Use ReplyKeyboardMarkup for private chats (DMs)
+        keyboard = [
+            [row['Main Category']] for _, row in main_items.iterrows()
+        ]
+        reply_markup = ReplyKeyboardMarkup(
+            keyboard, 
+            resize_keyboard=True, 
+            one_time_keyboard=False  # Makes the keyboard persistent
+        )
+        # Send start.gif before the menu
+        try:
+            with open('start.gif', 'rb') as gif:
+                await update.message.reply_animation(gif)
+        except Exception as e:
+            logger.error(f"Failed to send start.gif: {str(e)}")
+        await update.message.reply_text(description, reply_markup=reply_markup, parse_mode='Markdown')
+    else:
+        # Use InlineKeyboardMarkup for group chats
+        keyboard = [
+            [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
+            for _, row in main_items.iterrows()
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        # Send start.gif before the menu
+        try:
+            with open('start.gif', 'rb') as gif:
+                await update.message.reply_animation(gif)
+        except Exception as e:
+            logger.error(f"Failed to send start.gif: {str(e)}")
+        await update.message.reply_text(description, reply_markup=reply_markup, parse_mode='Markdown')
+
+# Generic handler for commands that should show a submenu (e.g., /xrpltools, /wallets, etc.)
+async def show_submenu(update, context, command_name):
+    chat_type = update.message.chat.type
+    context_filter = 'private' if chat_type == 'private' else 'group'
+    
+    logger.info(f"Command invoked: /{command_name}, Chat Type: {chat_type}, Context Filter: {context_filter}")
+    
+    # Find the main category for this command
+    command_entry = commands[(commands['Command'] == f'/{command_name}') & (commands['Context'] == context_filter)]
+    if command_entry.empty:
+        await update.message.reply_text(f"Command /{command_name} not found.", parse_mode='Markdown')
+        return
+    
+    main_category = command_entry.iloc[0]['Main Category']
+    
+    # Fetch submenu items for this main category
+    sub_items = commands[(commands['Main Category'] == main_category) & (commands['Menu Level'] == 'submenu') & (commands['Context'] == context_filter)]
+    if sub_items.empty:
+        description = command_entry.iloc[0]['Description'].replace('\\n', '\n')
+        await update.message.reply_text(description, parse_mode='Markdown')
+        return
+    
+    # Create inline menu for submenu items
+    keyboard = [
+        [InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])]
+        for _, row in sub_items.iterrows()
+    ]
+    keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
     reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(f"*{main_category}*\nSelect an option below:", reply_markup=reply_markup, parse_mode='Markdown')
 
-    try:
-        with open('start.gif', 'rb') as gif:
-            await update.message.reply_animation(gif)
-    except Exception as e:
-        logger.error(f"Failed to send start.gif: {str(e)}")
-
-    await update.message.reply_text(description, reply_markup=reply_markup, parse_mode='Markdown')
-
-# Button handler
+# Handle button clicks
 async def button(update, context):
     query = update.callback_query
     cmd = query.data
-    logger.info(f"Button clicked with callback data: {cmd}")
-
+    logger.info(f"Button clicked with callback data: {cmd}")  # Log the callback data
+    
     chat_type = query.message.chat.type
     context_filter = 'private' if chat_type == 'private' else 'group'
-
+    
     if cmd == "back_to_main":
+        # Rebuild the main menu with context filter
         main_items = commands[(commands['Menu Level'] == 'main') & (commands['Context'] == context_filter)]
-        keyboard = [[InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])] for _, row in main_items.iterrows()]
+        keyboard = [
+            [InlineKeyboardButton(row['Main Category'], callback_data=row['Command'])]
+            for _, row in main_items.iterrows()
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        await query.edit_message_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", reply_markup=reply_markup, parse_mode='Markdown')
+        await query.edit_message_text("🐱 *Welcome to MewFi Bot!* 🐱\n\nUse the menu below to navigate.", 
+                                      reply_markup=reply_markup, parse_mode='Markdown')
     elif cmd == "/pricexrp":
+        # Call the pricexrp() function directly
         price_data = fetch_xrp_price()
         source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
         response = format_price_message(price_data, source)
         await query.edit_message_text(response, parse_mode='Markdown')
     else:
-        row = commands[commands['Command'] == cmd]
+        row = commands[(commands['Command'] == cmd) & (commands['Context'] == context_filter)]
         if not row.empty:
             row = row.iloc[0]
             if row['Menu Level'] == 'main':
+                # Show submenu for this main category
                 sub_items = commands[(commands['Main Category'] == row['Main Category']) & (commands['Menu Level'] == 'submenu') & (commands['Context'] == context_filter)]
                 if not sub_items.empty:
-                    keyboard = [[InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])] for _, row in sub_items.iterrows()]
+                    keyboard = [
+                        [InlineKeyboardButton(row['Submenu Item'], callback_data=row['Command'])]
+                        for _, row in sub_items.iterrows()
+                    ]
                     keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_to_main")])
                     reply_markup = InlineKeyboardMarkup(keyboard)
-                    await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", reply_markup=reply_markup, parse_mode='Markdown')
+                    await query.edit_message_text(f"*{row['Main Category']}*\nSelect an option below:", 
+                                                 reply_markup=reply_markup, parse_mode='Markdown')
                 else:
-                    await query.edit_message_text(row['Description'].replace('\\n', '\n'), parse_mode='Markdown')
+                    description = row['Description'].replace('\\n', '\n')
+                    await query.edit_message_text(description, parse_mode='Markdown')
             else:
-                await query.edit_message_text(row['Description'].replace('\\n', '\n'), parse_mode='Markdown')
+                # Display the description for the submenu item
+                description = row['Description'].replace('\\n', '\n')
+                await query.edit_message_text(description, parse_mode='Markdown')
         else:
             await query.edit_message_text(f"Command {cmd} not found in commands.csv", parse_mode='Markdown')
     await query.answer()
 
 # Command handler for /pricexrp
 async def pricexrp(update, context):
+    chat_type = update.message.chat.type
+    context_filter = 'private' if chat_type == 'private' else 'group'
+    command_entry = commands[(commands['Command'] == '/pricexrp') & (commands['Context'] == context_filter)]
+    
     price_data = fetch_xrp_price()
     source = "CoinMarketCap" if os.getenv("CMC_API_KEY") and price_data.get('success') else "CoinGecko"
     response = format_price_message(price_data, source)
@@ -148,5 +236,17 @@ async def pricexrp(update, context):
 app = Application.builder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("pricexrp", pricexrp))
+app.add_handler(CommandHandler("wallets", lambda update, context: show_submenu(update, context, "wallets")))
+app.add_handler(CommandHandler("dexs", lambda update, context: show_submenu(update, context, "dexs")))
+app.add_handler(CommandHandler("cexs", lambda update, context: show_submenu(update, context, "cexs")))
+app.add_handler(CommandHandler("xrpltools", lambda update, context: show_submenu(update, context, "xrpltools")))
+app.add_handler(CommandHandler("airdrops", lambda update, context: show_submenu(update, context, "airdrops")))
+app.add_handler(CommandHandler("nfts", lambda update, context: show_submenu(update, context, "nfts")))
+app.add_handler(CommandHandler("buy_meowrp", lambda update, context: show_submenu(update, context, "buy_meowrp")))
+app.add_handler(CommandHandler("antirug_scan", lambda update, context: show_submenu(update, context, "antirug_scan")))
+app.add_handler(CommandHandler("merch", lambda update, context: show_submenu(update, context, "merch")))
+app.add_handler(CommandHandler("terminology", lambda update, context: show_submenu(update, context, "terminology")))
+app.add_handler(CommandHandler("influencers", lambda update, context: show_submenu(update, context, "influencers")))
+app.add_handler(CommandHandler("help", lambda update, context: start(update, context)))
 app.add_handler(CallbackQueryHandler(button))
 app.run_polling()
