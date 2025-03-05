@@ -2,7 +2,7 @@ import os
 import logging
 import pandas as pd
 import requests
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from datetime import datetime
 
@@ -169,7 +169,7 @@ async def show_submenu(update, context, command_name):
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(f"*{main_category}*\nSelect an option below:", reply_markup=reply_markup, parse_mode='Markdown')
 
-# Handle button clicks
+# Handle button clicks (for InlineKeyboardMarkup)
 async def button(update, context):
     query = update.callback_query
     cmd = query.data
@@ -232,6 +232,35 @@ async def pricexrp(update, context):
     response = format_price_message(price_data, source)
     await update.message.reply_text(response, parse_mode='Markdown')
 
+# New MessageHandler to handle ReplyKeyboardMarkup button clicks in private chats
+async def handle_reply_keyboard(update, context):
+    chat_type = update.message.chat.type
+    if chat_type != 'private':
+        return  # Only handle ReplyKeyboardMarkup in private chats
+    
+    # Get the text from the button click (e.g., "Live XRP Price 📈")
+    button_text = update.message.text
+    logger.info(f"ReplyKeyboardMarkup button clicked: {button_text}")
+    
+    # Look up the Main Category in commands.csv to find the corresponding Command
+    command_entry = commands[(commands['Main Category'] == button_text) & (commands['Menu Level'] == 'main') & (commands['Context'] == 'private')]
+    if command_entry.empty:
+        await update.message.reply_text(f"Option {button_text} not found.", parse_mode='Markdown')
+        return
+    
+    command = command_entry.iloc[0]['Command'].lstrip('/')  # Remove the leading '/' (e.g., 'pricexrp')
+    
+    # Call the appropriate handler based on the command
+    if command == 'pricexrp':
+        await pricexrp(update, context)
+    elif command == 'start':
+        await start(update, context)
+    elif command == 'help':
+        await start(update, context)  # /help uses the start handler
+    else:
+        # For all other commands, use show_submenu (e.g., /dexs, /wallets, etc.)
+        await show_submenu(update, context, command)
+
 # Setup bot
 app = Application.builder().token(BOT_TOKEN).build()
 app.add_handler(CommandHandler("start", start))
@@ -249,4 +278,6 @@ app.add_handler(CommandHandler("terminology", lambda update, context: show_subme
 app.add_handler(CommandHandler("influencers", lambda update, context: show_submenu(update, context, "influencers")))
 app.add_handler(CommandHandler("help", lambda update, context: start(update, context)))
 app.add_handler(CallbackQueryHandler(button))
+# Add the MessageHandler for ReplyKeyboardMarkup clicks
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_reply_keyboard))
 app.run_polling()
