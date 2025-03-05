@@ -20,8 +20,9 @@ if not BOT_TOKEN:
     logger.error("❌ BOT_TOKEN not set in environment variables!")
     raise ValueError("BOT_TOKEN environment variable is required")
 
-# Load commands from CSV
+# Load commands from CSV and strip whitespace from all string columns
 commands = pd.read_csv('commands.csv')
+commands = commands.apply(lambda x: x.str.strip() if x.dtype == "object" else x)
 
 # Utility function to fetch XRP price from CoinMarketCap (or CoinGecko as fallback)
 def fetch_xrp_price():
@@ -77,6 +78,25 @@ def format_price_message(price_data, source="CoinGecko"):
         f"🟣 ETH: ${prices['ETH']['price']:,.2f} ({'🟢' if prices['ETH']['change'] > 0 else '🔴'} {prices['ETH']['change']:.2f}%)\n\n"
         f"Updated: {utc_time}\nPowered by {source} 📊"
     )
+
+# Utility function to split long messages into chunks
+def split_message(text, max_length=4000):
+    """Split a message into chunks of max_length characters, ensuring not to split in the middle of a word."""
+    if len(text.encode('utf-8')) <= max_length:
+        return [text]
+    
+    chunks = []
+    current_chunk = ""
+    for line in text.split('\n'):
+        if len((current_chunk + line + '\n').encode('utf-8')) <= max_length:
+            current_chunk += line + '\n'
+        else:
+            if current_chunk:
+                chunks.append(current_chunk.strip())
+            current_chunk = line + '\n'
+    if current_chunk:
+        chunks.append(current_chunk.strip())
+    return chunks
 
 # Start command with main menu
 async def start(update, context):
@@ -157,7 +177,10 @@ async def show_submenu(update, context, command_name):
     sub_items = commands[(commands['Main Category'] == main_category) & (commands['Menu Level'] == 'submenu') & (commands['Context'] == context_filter)]
     if sub_items.empty:
         description = command_entry.iloc[0]['Description'].replace('\\n', '\n')
-        await update.message.reply_text(description, parse_mode='Markdown')
+        # Split the description if it's too long
+        chunks = split_message(description)
+        for chunk in chunks:
+            await update.message.reply_text(chunk, parse_mode='Markdown')
         return
     
     # Create inline menu for submenu items
@@ -212,11 +235,19 @@ async def button(update, context):
                                                  reply_markup=reply_markup, parse_mode='Markdown')
                 else:
                     description = row['Description'].replace('\\n', '\n')
-                    await query.edit_message_text(description, parse_mode='Markdown')
+                    # Split the description if it's too long
+                    chunks = split_message(description)
+                    await query.edit_message_text(chunks[0], parse_mode='Markdown')
+                    for chunk in chunks[1:]:
+                        await query.message.reply_text(chunk, parse_mode='Markdown')
             else:
                 # Display the description for the submenu item
                 description = row['Description'].replace('\\n', '\n')
-                await query.edit_message_text(description, parse_mode='Markdown')
+                # Split the description if it's too long
+                chunks = split_message(description)
+                await query.edit_message_text(chunks[0], parse_mode='Markdown')
+                for chunk in chunks[1:]:
+                    await query.message.reply_text(chunk, parse_mode='Markdown')
         else:
             await query.edit_message_text(f"Command {cmd} not found in commands.csv", parse_mode='Markdown')
     await query.answer()
@@ -238,8 +269,8 @@ async def handle_reply_keyboard(update, context):
     if chat_type != 'private':
         return  # Only handle ReplyKeyboardMarkup in private chats
     
-    # Get the text from the button click (e.g., "Live XRP Price 📈")
-    button_text = update.message.text
+    # Get the text from the button click (e.g., "Live XRP Price 📈") and strip whitespace
+    button_text = update.message.text.strip()
     logger.info(f"ReplyKeyboardMarkup button clicked: {button_text}")
     
     # Look up the Main Category in commands.csv to find the corresponding Command
